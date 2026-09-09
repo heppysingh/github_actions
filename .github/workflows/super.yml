@@ -1,8 +1,6 @@
-name: Super Extraction
+name: Repack Super with Custom System
 
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
 
 jobs:
@@ -10,23 +8,118 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          submodules: recursive
 
       - name: Install dependencies
-        run: sudo apt-get update && sudo apt-get install -y curl tar 
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3 xz-utils curl e2fsprogs android-sdk-libsparse-utils
 
-      - name: Download firmware
+      - name: Get lpunpack/lpmake/lpdump tools
         run: |
-          curl -L -o firmware.tgz "https://xm04.space/MyUrLiwlJzsOOD0BMz8GIywRNEEOFTAINBUpIzE/KzUOPDJBGyEELhsQMDUxIS0eGz8dLzE/Hx4OFQRBDjwfDDQ8Kw8bFQQeNBIuAA4KBCYzPC0wMQofHg4KHwwxED0kQh4HLycSIjgnFjkvJxIXFUIJPR8QMjUfDj8rDCwKFzUbIT0cGxEADDkKBCY8ES0jORU0LSwwPSRCHgcvJxIiOCcWOS8nEhcVQgk9HxAyNR88HgdBJwJCACcCCREOAh1BJxYdLycWGhwnA0IvJwQ9IDEhPQE5FQAcHx4dPzkDFBcfAik/BRAXLhs/CDocFgk/BRYpQScCHRcnAgYT"
-      - name: Extract Firmware
+          git clone --depth=1 https://github.com/AndroidDumps/lpunpack_and_lpmake.git tools
+          chmod +x tools/bin/linux/*
+
+      - name: Download stock firmware
         run: |
-          tar -xvf firmware.tgz
-      - name: Compress super
+          curl -L -o firmware.tgz "https://xm04.space/MyUrLiwlJzsOOD0BMz8GIywRNEEOFTAINBUpIzE/KzUOPDJBGyEELhsQMDUxIS0eGz8dLzE/Hx4OFQRBDjwfDDQ8Kw8bFQQeNBIuAA4KBCYzPC0wMQofHg4KHwwxED0kQh4HLycSIjgnFjkvJxIXFUIJPR8QMjUfDj8rDCwKFzUbIT0cGxEADDkKBCY8ES0jORU0LSwwPSRCHgcvJxIiOCcWOS8nEhcVQgk9HxAyNR88HgdBJwJCACcCCREOAh1BJxYdLycWGhwnA0IvJwQ9IDEhPQE5FQAcHx4dPzkDFBcfAik/BRAXLhs/CDocFgk/BRYpQScCQjgfAikT"
+
+      - name: Extract firmware
+        run: tar -xvf firmware.tgz
+
+      - name: Locate super.img
+        id: locate
         run: |
-          zstd -T0 -12 --long=27 tornado_global_images_OS2.0.206.0.VPOMIXM_15.0/images/super.img -o super.img.zst
+          SUPER=$(find . -name "super.img" | head -n1)
+          echo "super=$SUPER" >> "$GITHUB_OUTPUT"
+
+      - name: Download replacement system image
+        run: |
+          curl -L -o system_new.img.xz "https://github.com/Doze-off/axion_aosp/releases/download/2026-09-04/Axion-2.8-GSI_treble_arm64-ab-GAPPS-20260904.img.xz"
+          xz -d system_new.img.xz
+
+      - name: Dump super.img metadata
+        run: |
+          tools/bin/linux/lpdump --json "${{ steps.locate.outputs.super }}" > super_meta.json
+          cat super_meta.json
+
+      - name: Unpack existing super.img
+        run: |
+          mkdir unpacked
+          tools/bin/linux/lpunpack "${{ steps.locate.outputs.super }}" unpacked/
+          ls -la unpacked/
+
+      - name: Create dummy product_a / product_b images
+        run: |
+          # 1MiB empty ext4 partitions as placeholders — adjust size if your device needs larger dummies
+          for p in product_a product_b; do
+            dd if=/dev/zero of=${p}.img bs=1M count=1
+            mkfs.ext4 -F -L ${p} ${p}.img
+          done
+
+      - name: Swap in new system image
+        run: |
+          SYS=$(find unpacked -iname "system_a.img" -o -iname "system.img" | head -n1)
+          echo "Replacing $SYS"
+          cp system_new.img "$SYS"
+
+      - name: Build lpmake command from metadata and repack
+        run: |
+          python3 - <<'EOF'
+          import json, subprocess, os
+
+          with open("super_meta.json") as f:
+              meta = json.load(f)
+
+          block_devices = meta["block_devices"]
+          groups = meta["groups"]
+          partitions = meta["partitions"]
+
+          dev = block_devices[0]
+          device_size = dev["size"]
+          metadata_size = meta.get("metadata_max_size", 65536)
+          metadata_slots = meta.get("metadata_slot_count", 2)
+
+          args = [
+              "tools/bin/linux/lpmake",
+              "--metadata-size", str(metadata_size),
+              "--metadata-slots", str(metadata_slots),
+              "--device", f"super:{device_size}",
+              "--sparse",
+              "--output", "super_new.img",
+          ]
+
+          for g in groups:
+              args += ["--group", f"{g['name']}:{g['maximum_size']}"]
+
+          for p in partitions:
+              name = p["name"]
+              group = p["group_name"]
+              attrs = "readonly" if "readonly" in p.get("attributes", []) else "none"
+              img_path = f"unpacked/{name}.img"
+              if name.startswith("system"):
+                  img_path = "unpacked/" + [f for f in os.listdir("unpacked") if "system" in f][0]
+              size = os.path.getsize(img_path) if os.path.exists(img_path) else p["size"]
+              args += ["--partition", f"{name}:{attrs}:{size}:{group}"]
+              args += ["--image", f"{name}={img_path}"]
+
+          # add dummy partitions to the first group
+          first_group = groups[0]["name"]
+          for extra in ["product_a", "product_b"]:
+              size = os.path.getsize(f"{extra}.img")
+              args += ["--partition", f"{extra}:none:{size}:{first_group}"]
+              args += ["--image", f"{extra}={extra}.img"]
+
+          print("Running:", " ".join(args))
+          subprocess.run(args, check=True)
+          EOF
+
+      - name: Compress repacked super.img
+        run: zstd -T0 -12 super_new.img -o super_new.img.zst
+
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: super-image
-          path: tornado_global_images_OS2.0.206.0.VPOMIXM_15.0/images/super.img.zst
+          name: super-repacked
+          path: super_new.img.zst
+          if-no-files-found: error
+
