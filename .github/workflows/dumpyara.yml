@@ -1,0 +1,70 @@
+name: Extract Stock Firmware (dumpyara)
+
+on:
+  workflow_dispatch:
+    inputs:
+      firmware_url:
+        description: 'URL of the firmware package (tgz/zip/etc)'
+        required: true
+        default: 'https://xm04.space/MyUrLiwlJzsOOD0BMz8GIywRNEEOFTAINBUpIzE/KzUOPDJBGyEELhsQMDUxIS0eGz8dLzE/Hx4OFQRBDjwfDDQ8Kw8bFQQeNBIuAA4KBCYzPC0wMQofHg4KHwwxED0kQh4HLycSIjgnFgcvJxIXFUIJPUADLTUfDj8rDCwKFzUbIT0cMxUXHBsRAAw5CgQmPBEtIzkVNC0sMD0kQh4HLycSIjgnFgcvJxIXFUIJPUADLTUfPB4HQScCQgAnFgcuDgIdQScWHS8nFhocJwNCLycEPQgxLToXBSEEAjkRBzAFFjIpDiArIAsgADonAywiBRY5IgUDBj8nBhMT'
+
+permissions:
+  contents: read
+
+jobs:
+  dump:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Free up disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/lib/android /usr/local/.ghcup
+          sudo docker image prune -a -f || true
+          df -h
+
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Install dumpyara and dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y android-sdk-libsparse-utils erofs-utils e2tools e2fsprogs \
+            brotli p7zip-full lz4 cpio python3-pip python3-setuptools git-lfs
+          pip install --break-system-packages dumpyara
+          git lfs install
+
+      - name: Download firmware package
+        run: |
+          curl -L --fail --retry 5 --retry-delay 5 --retry-all-errors \
+            --speed-time 30 --speed-limit 5000 \
+            -o firmware_package.tgz "${{ github.event.inputs.firmware_url }}"
+          ls -lh firmware_package.tgz
+
+      - name: Run dumpyara
+        run: |
+          mkdir -p dump_output
+          cd dump_output
+          python3 -m dumpyara ../firmware_package.tgz
+          echo "---- dumpyara output ----"
+          find . -maxdepth 2
+
+      - name: Locate MISettings.apk
+        run: |
+          SRC_DIR=$(find dump_output -mindepth 1 -maxdepth 1 -type d | head -n1)
+          if [ -z "$SRC_DIR" ]; then
+            SRC_DIR="dump_output"
+          fi
+          TARGET="$SRC_DIR/product/app/MISettings/MISettings.apk"
+          if [ ! -f "$TARGET" ]; then
+            echo "::error::MISettings.apk not found at $TARGET"
+            find "$SRC_DIR" -iname "MISettings.apk"
+            exit 1
+          fi
+          mkdir -p artifact_out
+          cp "$TARGET" artifact_out/MISettings.apk
+
+      - name: Upload MISettings.apk as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: MISettings
+          path: artifact_out/MISettings.apk
+          retention-days: 14
