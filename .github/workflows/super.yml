@@ -24,7 +24,7 @@ jobs:
           tar -xvf firmware.tgz
       - name: Compress super
         run: |
-          zstd -T0 -19 --long=27 tornado_global_images_OS2.0.206.0.VPOMIXM_15.0/images/super.img -o super.img.zst
+          zstd -T0 -12 --long=27 tornado_global_images_OS2.0.206.0.VPOMIXM_15.0/images/super.img -o super.img.zst
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
