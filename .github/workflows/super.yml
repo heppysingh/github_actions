@@ -22,9 +22,11 @@ jobs:
       - name: Extract Firmware
         run: |
           tar -xvf tornado_global_images_OS2.0.206.0.VPOMIXM_20251216.0000.00_15.0_global_707a896979.tgz
-
+      - name: Compress super
+        run: |
+          xz -T0 -9 -k tornado_global_images_OS2.0.206.0.VPOMIXM_20251216.0000.00_15.0_global/images/super.img
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: super-image
-          path: tornado_global_images_OS2.0.206.0.VPOMIXM_20251216.0000.00_15.0_global/images/super.img
+          path: tornado_global_images_OS2.0.206.0.VPOMIXM_20251216.0000.00_15.0_global/images/super.img.xz
