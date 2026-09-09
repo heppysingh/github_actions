@@ -1,0 +1,30 @@
+name: Super Extraction
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install dependencies
+        run: sudo apt-get update && sudo apt-get install -y curl tar 
+
+      - name: Download firmware
+        run: |
+          curl -LO "https://xm04.space/MyUrLiwlJzsOOD0BMz8GIywRNEEOFTAINBUpIzE/KzUOPDJBGyEELhsQMDUxIS0eGz8dLzE/Hx4OFQRBDjwfDDQ8Kw8bFQQeNBIuAA4KBCYzPC0wMQofHg4KHwwxED0kQh4HLycSIjgnFjkvJxIXFUIJPR8QMjUfDj8rDCwKFzUbIT0cGxEADDkKBCY8ES0jORU0LSwwPSRCHgcvJxIiOCcWOS8nEhcVQgk9HxAyNR88HgdBJwJCACcCCREOAh1BJxYdLycWGhwnA0IvJwQ9IDEhPQE5FQAcHx4dPzkDFBcfAik/BRAXLhs/CDocFgk/BRYpQScCHRcnAgYT"
+      - name: Extract Firmware
+        run: |
+          tar -xvf tornado_global_images_OS2.0.206.0.VPOMIXM_20251216.0000.00_15.0_global_707a896979.tgz
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: super-image
+          path: tornado_global_images_OS2.0.206.0.VPOMIXM_20251216.0000.00_15.0_global/images/super.img
