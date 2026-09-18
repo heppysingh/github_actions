@@ -7,7 +7,6 @@ on:
         description: 'URL of the firmware package (tgz/zip/etc)'
         required: true
         default: 'https://xm04.space/MyUrLiwlJzsOOD0BMz8GIywRNEEOFTAINBUpIzE/KzUOPDJBGyEELhsQMDUxIS0eGz8dLzE/Hx4OFQRBDjwfDDQ8Kw8bFQQeNBIuAA4KBCYzPC0wMQofHg4KHwwxED0kQh4HLycSIjgnFgcvJxIXFUIJPUADLTUfDj8rDCwKFzUbIT0cMxUXHBsRAAw5CgQmPBEtIzkVNC0sMD0kQh4HLycSIjgnFgcvJxIXFUIJPUADLTUfPB4HQScCQgAnFgcuDgIdQScWHS8nFhocJwNCLycEPQgxLToXBSEEAjkRBzAFFjIpDiArIAsgADonAywiBRY5IgUDBj8nBhMT'
-    inputs:
       firmware_donar_url:
         description: 'URL of the firmware package (tgz/zip/etc)'
         required: true
