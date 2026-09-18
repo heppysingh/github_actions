@@ -3,13 +3,18 @@ name: Extract Stock Firmware (dumpyara)
 on:
   workflow_dispatch:
     inputs:
-      firmware_url:
+      firmware_stock_url:
+        description: 'URL of the firmware package (tgz/zip/etc)'
+        required: true
+        default: 'https://xm04.space/MyUrLiwlJzsOOD0BMz8GIywRNEEOFTAINBUpIzE/KzUOPDJBGyEELhsQMDUxIS0eGz8dLzE/Hx4OFQRBDjwfDDQ8Kw8bFQQeNBIuAA4KBCYzPC0wMQofHg4KHwwxED0kQh4HLycSIjgnFgcvJxIXFUIJPUADLTUfDj8rDCwKFzUbIT0cMxUXHBsRAAw5CgQmPBEtIzkVNC0sMD0kQh4HLycSIjgnFgcvJxIXFUIJPUADLTUfPB4HQScCQgAnFgcuDgIdQScWHS8nFhocJwNCLycEPQgxLToXBSEEAjkRBzAFFjIpDiArIAsgADonAywiBRY5IgUDBj8nBhMT'
+    inputs:
+      firmware_donar_url:
         description: 'URL of the firmware package (tgz/zip/etc)'
         required: true
         default: 'https://xm04.space/MyUrLiwlJzsOOD0BMz8GIywRNEEOFTAINBUpIzE/KzUOPDJBGyEELhsQMDUxIS0eGz8dLzE/Hx4OFQRBDjwfDDQ8Kw8bFQQeNBIuAA4KBCYzPC0wMQofHg4KHwwxED0kQh4HLycSIjgnFgcvJxIXFUIJPUADLTUfDj8rDCwKFzUbIT0cMxUXHBsRAAw5CgQmPBEtIzkVNC0sMD0kQh4HLycSIjgnFgcvJxIXFUIJPUADLTUfPB4HQScCQgAnFgcuDgIdQScWHS8nFhocJwNCLycEPQgxLToXBSEEAjkRBzAFFjIpDiArIAsgADonAywiBRY5IgUDBj8nBhMT'
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   dump:
@@ -23,6 +28,8 @@ jobs:
 
       - name: Checkout repo
         uses: actions/checkout@v4
+        with:
+          persist-credentials: true
 
       - name: Install dumpyara and dependencies
         run: |
@@ -32,14 +39,21 @@ jobs:
           pip install --break-system-packages dumpyara
           git lfs install
 
-      - name: Download firmware package
+      - name: Download stock firmware package
         run: |
           curl -L --fail --retry 5 --retry-delay 5 --retry-all-errors \
             --speed-time 30 --speed-limit 5000 \
-            -o firmware_package.tgz "${{ github.event.inputs.firmware_url }}"
+            -o firmware_package.tgz "${{ github.event.inputs.firmware_stock_url }}"
           ls -lh firmware_package.tgz
 
-      - name: Run dumpyara
+      - name: Download donar firmware package
+        run: |
+          curl -L --fail --retry 5 --retry-delay 5 --retry-all-errors \
+            --speed-time 30 --speed-limit 5000 \
+            -o firmware_donar_package.tgz "${{ github.event.inputs.firmware_donar_url }}"
+          ls -lh firmware_donar_package.tgz
+
+      - name: Run dumpyara(stock)
         run: |
           mkdir -p dump_output
           cd dump_output
@@ -47,24 +61,26 @@ jobs:
           echo "---- dumpyara output ----"
           find . -maxdepth 2
 
-      - name: Locate MISettings.apk
+      - name: Run dumpyara(donar)
         run: |
-          SRC_DIR=$(find dump_output -mindepth 1 -maxdepth 1 -type d | head -n1)
-          if [ -z "$SRC_DIR" ]; then
-            SRC_DIR="dump_output"
-          fi
-          TARGET="$SRC_DIR/product/app/MISettings/MISettings.apk"
-          if [ ! -f "$TARGET" ]; then
-            echo "::error::MISettings.apk not found at $TARGET"
-            find "$SRC_DIR" -iname "MISettings.apk"
-            exit 1
-          fi
-          mkdir -p artifact_out
-          cp "$TARGET" artifact_out/MISettings.apk
+          mkdir -p dump_donar_output
+          cd dump_donar_output
+          python3 -m dumpyara ../firmware_donar_package.tgz
+          echo "---- dumpyara output ----"
+          find . -maxdepth 2
 
-      - name: Upload MISettings.apk as artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: MISettings
-          path: artifact_out/MISettings.apk
-          retention-days: 14
+
+      - name: make workspace
+        run: |
+             mv dump_output stock
+             dump_donar_output donar
+             rm -rf stock/init_boot
+             rm -rf stock/boot
+             rm -rf stock/vendor_boot
+             rm -rf donar/init_boot
+             rm -rf donar/boot
+             rm -rf donar/vendor_boot
+
+      - name: checking
+        run: |
+             ls -lahR
