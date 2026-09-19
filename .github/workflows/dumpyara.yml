@@ -71,8 +71,11 @@ jobs:
 
       - name: make workspace
         run: |
-             mv dump_output stock
-             dump_donar_output donar
+             cp -R dump_output/firmware_package stock
+             rm -rf dump_output/firmware_package
+             cp -R dump_donar_output/firmware_donar_package donar
+             rm -rf dump_donar_output/firmware_donar_package 
+             
              rm -rf stock/init_boot
              rm -rf stock/boot
              rm -rf stock/vendor_boot
@@ -82,4 +85,6 @@ jobs:
 
       - name: checking
         run: |
-             ls -lahR
+             ls -lah stock
+
+             ls -lah stock
