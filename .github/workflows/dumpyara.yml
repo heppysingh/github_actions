@@ -79,9 +79,23 @@ jobs:
              rm -rf stock/init_boot
              rm -rf stock/boot
              rm -rf stock/vendor_boot
+             rm -rf stock/init_boot.img
+             rm -rf stock/boot.img
+             rm -rf stock/vendor_boot.img
+             rm -rf stock/dtbo.img
+             rm -rf stock/rescue.img
+             rm -rf stock/all_files.txt
+             
              rm -rf donar/init_boot
              rm -rf donar/boot
              rm -rf donar/vendor_boot
+             rm -rf donar/init_boot.img
+             rm -rf donar/boot.img
+             rm -rf donar/vendor_boot.img
+             rm -rf donar/dtbo.img
+             rm -rf donar/rescue.img
+             rm -rf donar/all_files.txt
+             
 
       - name: checking
         run: |
