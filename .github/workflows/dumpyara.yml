@@ -4,12 +4,12 @@ on:
   workflow_dispatch:
     inputs:
       firmware_stock_url:
-        description: 'URL of the firmware package (tgz/zip/etc)'
+        description: 'URL of the Stock firmware package (tgz/zip/etc)'
         required: true
         default: 'https://xm04.space/MyUrLiwlJzsOOD0BMz8GIywRNEEOFTAINBUpIzE/KzUOPDJBGyEELhsQMDUxIS0eGz8dLzE/Hx4OFQRBDjwfDDQ8Kw8bFQQeNBIuAA4KBCYzPC0wMQofHg4KHwwxED0kQh4nLycSIh4nFkIvJxIXPEIJPUADLTUfDj8rDCwKFzUbIT0cMxUXHBsRAAw5CgQmPBEtIzkVNC0sMD0kQh4nLycSIh4nFkIvJxIXPEIJPUADLTUfPB4HQScCOUEfHh0/DgIdQScWHS8nFhocJwM5LycEPQgxLTowGxUyNRsWCT8fHiwwDiArIAsgADonAywiBQMUHgUWBzAfHRMT'
 
       firmware_donar_url:
-        description: 'URL of the firmware package (tgz/zip/etc)'
+        description: 'URL of the Donar firmware package (tgz/zip/etc)'
         required: true
         default: 'https://xm04.space/MyUrLiwlJzsOOD0BMz8GIywRNEEOFTAINBUpIzE/KzUOPDJBGyEELhsQMDUxIS0eGz8dLzE/Hx4OFQRBDjwfDDQ8Kw8bFQQeNBIuAA4KBCYzPC0wMQofHg4KHwwxED0kQh4nLycSIh4nFkIvJxIXPEIJPUADLTUfDj8rDCwKFzUbIT0cMxUXHBsRAAw5CgQmPBEtIzkVNC0sMD0kQh4nLycSIh4nFkIvJxIXPEIJPUADLTUfPB4HQScCOUEfHh0/DgIdQScWHS8nFhocJwM5LycEPQgxLTowGxUyNRsWCT8fHiwwDiArIAsgADonAywiBQMUHgUWBzAfHRMT'
 permissions:
