@@ -37,14 +37,10 @@ jobs:
             brotli p7zip-full lz4 cpio python3-pip python3-setuptools git-lfs curl
           pip install --break-system-packages dumpyara
           git lfs install
-          Clone shallow repo containing static host tools
-          git clone --depth=1 https://github.com/phhusson/device_phh_treble.git /tmp/treble
-          sudo cp /tmp/treble/bin/lpmake /usr/local/bin/lpmake || sudo cp /tmp/treble/lpmake /usr/local/bin/lpmake
-          sudo chmod +x /usr/local/bin/lpmake
-          rm -rf /tmp/treble
-
-          lpmake --help
-
+      - name: Install lpmake via pip
+        run: |
+          pip install --break-system-packages lp-tools || pip install --break-system-packages system-image-tools
+          
       - name: Download firmware packages
         run: |
           curl -L --fail --retry 5 --retry-delay 5 -o firmware_stock.tgz "${{ github.event.inputs.firmware_stock_url }}"
