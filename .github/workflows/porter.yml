@@ -37,9 +37,13 @@ jobs:
             brotli p7zip-full lz4 cpio python3-pip python3-setuptools git-lfs curl
           pip install --break-system-packages dumpyara
           git lfs install
-          # Fetch verified x86_64 lpmake host binary
-          sudo curl -fsSL "https://raw.githubusercontent.com/rokibhasansagar/OTATools/master/bin/lpmake" -o /usr/local/bin/lpmake
+          Clone shallow repo containing static host tools
+          git clone --depth=1 https://github.com/phhusson/device_phh_treble.git /tmp/treble
+          sudo cp /tmp/treble/bin/lpmake /usr/local/bin/lpmake || sudo cp /tmp/treble/lpmake /usr/local/bin/lpmake
           sudo chmod +x /usr/local/bin/lpmake
+          rm -rf /tmp/treble
+
+          lpmake --help
 
       - name: Download firmware packages
         run: |
