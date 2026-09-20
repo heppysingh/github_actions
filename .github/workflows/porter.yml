@@ -36,7 +36,9 @@ jobs:
           sudo apt-get install -y android-sdk-libsparse-utils erofs-utils e2tools e2fsprogs \
             brotli p7zip-full lz4 cpio python3-pip python3-setuptools git-lfs curl
           pip install --break-system-packages dumpyara 
-          sudo apt install android-tools-partition-tools -y
+          git clone https://github.com/Exynos-nigg/lpunpack-lpmake-mirror.git lpbinary
+          cd lpbinary
+          bash install.sh
           
  
       - name: Download firmware packages
