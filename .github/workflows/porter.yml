@@ -1,4 +1,4 @@
-name: Rom Porter 
+name: Rom Porter
 
 on:
   workflow_dispatch:
@@ -7,16 +7,16 @@ on:
         description: 'URL of the Stock firmware package (tgz/zip/etc)'
         required: true
         default: 'https://xm04.space/MyUrLiwlJzsOOD0BMz8GIywRNEEOFTAINBUpIzE/KzUOPDJBGyEELhsQMDUxIS0eGz8dLzE/Hx4OFQRBDjwfDDQ8Kw8bFQQeNBIuAA4KBCYzPC0wMQofHg4KHwwxED0kQh4nLycSIh4nFkIvJxIXPEIJPUADLTUfDj8rDCwKFzUbIT0cMxUXHBsRAAw5CgQmPBEtIzkVNC0sMD0kQh4nLycSIh4nFkIvJxIXPEIJPUADLTUfPB4HQScCOUEfHh0/DgIdQScWHS8nFhocJwM5LycEPQgxLTowGxUyNRsWCT8fHiwwDiArIAsgADonAywiBQMUHgUWBzAfHRMT'
-
-      firmware_donar_url:
-        description: 'URL of the Donar firmware package (tgz/zip/etc)'
+      firmware_donor_url:
+        description: 'URL of the Donor firmware package (tgz/zip/etc)'
         required: true
         default: 'https://xm04.space/MyUrLiwlJzsOOD0BMz8GIywRNEEOFTAINBUpIzE/KzUOPDJBGyEELhsQMDUxIS0eGz8dLzE/Hx4OFQRBDjwfDDQ8Kw8bFQQeNBIuAA4KBCYzPC0wMQofHg4KHwwxED0kQh4nLycSIh4nFkIvJxIXPEIJPUADLTUfDj8rDCwKFzUbIT0cMxUXHBsRAAw5CgQmPBEtIzkVNC0sMD0kQh4nLycSIh4nFkIvJxIXPEIJPUADLTUfPB4HQScCOUEfHh0/DgIdQScWHS8nFhocJwM5LycEPQgxLTowGxUyNRsWCT8fHiwwDiArIAsgADonAywiBQMUHgUWBzAfHRMT'
+
 permissions:
   contents: write
 
 jobs:
-  dump:
+  port:
     runs-on: ubuntu-latest
     steps:
       - name: Free up disk space
@@ -30,80 +30,154 @@ jobs:
         with:
           persist-credentials: true
 
-      - name: Install dumpyara and dependencies
+      - name: Install dependencies and lpmake
         run: |
           sudo apt-get update
           sudo apt-get install -y android-sdk-libsparse-utils erofs-utils e2tools e2fsprogs \
-            brotli p7zip-full lz4 cpio python3-pip python3-setuptools git-lfs
+            brotli p7zip-full lz4 cpio python3-pip python3-setuptools git-lfs curl
           pip install --break-system-packages dumpyara
           git lfs install
+          # Fetch verified x86_64 lpmake host binary
+          sudo curl -fsSL "https://raw.githubusercontent.com/rokibhasansagar/OTATools/master/bin/lpmake" -o /usr/local/bin/lpmake
+          sudo chmod +x /usr/local/bin/lpmake
 
-      - name: Download stock firmware package
+      - name: Download firmware packages
         run: |
-          curl -L --fail --retry 5 --retry-delay 5 --retry-all-errors \
-            --speed-time 30 --speed-limit 5000 \
-            -o firmware_package.tgz "${{ github.event.inputs.firmware_stock_url }}"
-          ls -lh firmware_package.tgz
+          curl -L --fail --retry 5 --retry-delay 5 -o firmware_stock.tgz "${{ github.event.inputs.firmware_stock_url }}"
+          curl -L --fail --retry 5 --retry-delay 5 -o firmware_donor.tgz "${{ github.event.inputs.firmware_donor_url }}"
+          ls -lh *.tgz
 
-      - name: Download donar firmware package
+      - name: Dump stock firmware
         run: |
-          curl -L --fail --retry 5 --retry-delay 5 --retry-all-errors \
-            --speed-time 30 --speed-limit 5000 \
-            -o firmware_donar_package.tgz "${{ github.event.inputs.firmware_donar_url }}"
-          ls -lh firmware_donar_package.tgz
+          mkdir -p dump_stock
+          cd dump_stock
+          python3 -m dumpyara ../firmware_stock.tgz
+          cd ..
+          rm -f firmware_stock.tgz
 
-      - name: Run dumpyara(stock)
+      - name: Dump donor firmware
         run: |
-          mkdir -p dump_output
-          cd dump_output
-          python3 -m dumpyara ../firmware_package.tgz
-          echo "---- dumpyara output ----"
-          find . -maxdepth 2
+          mkdir -p dump_donor
+          cd dump_donor
+          python3 -m dumpyara ../firmware_donor.tgz
+          cd ..
+          rm -f firmware_donor.tgz
 
-      - name: Run dumpyara(donar)
+      - name: Setup workspace folders
         run: |
-          mkdir -p dump_donar_output
-          cd dump_donar_output
-          python3 -m dumpyara ../firmware_donar_package.tgz
-          echo "---- dumpyara output ----"
-          find . -maxdepth 2
+          mv dump_stock/firmware_stock stock
+          mv dump_donor/firmware_donor donor
+          rm -rf dump_stock dump_donor
 
+          # Prune non-dynamic partitions to conserve space
+          rm -rf stock/boot* stock/vendor_boot* stock/init_boot* stock/dtbo* stock/rescue*
+          rm -rf donor/boot* donor/vendor_boot* donor/init_boot* donor/dtbo* donor/rescue*
 
-      - name: make workspace
+      - name: Apply Porting Steps
         run: |
-             cp -R dump_output/firmware_package stock
-             rm -rf dump_output/firmware_package
-             cp -R dump_donar_output/firmware_donar_package donar
-             rm -rf dump_donar_output/firmware_donar_package 
-             
-             rm -rf stock/init_boot
-             rm -rf stock/boot
-             rm -rf stock/vendor_boot
-             rm -rf stock/init_boot.img
-             rm -rf stock/boot.img
-             rm -rf stock/vendor_boot.img
-             rm -rf stock/dtbo.img
-             rm -rf stock/rescue.img
-             rm -rf stock/all_files.txt
-             
-             rm -rf donar/init_boot
-             rm -rf donar/boot
-             rm -rf donar/vendor_boot
-             rm -rf donar/init_boot.img
-             rm -rf donar/boot.img
-             rm -rf donar/vendor_boot.img
-             rm -rf donar/dtbo.img
-             rm -rf donar/rescue.img
-             rm -rf donar/all_files.txt
-             
+          # Step 3: Device features
+          mkdir -p donor/product/etc/device_features
+          cp -rf stock/product/etc/device_features/* donor/product/etc/device_features/ || true
 
-      - name: checking
+          # Step 4: Display config
+          mkdir -p donor/product/etc/displayconfig
+          cp -rf stock/product/etc/displayconfig/* donor/product/etc/displayconfig/ || true
+
+          # Step 5: Transfer VNDK APEX
+          mkdir -p donor/system_ext/apex
+          cp -rf stock/system_ext/apex/*vndk* donor/system_ext/apex/ || true
+
+          # Step 6: Move pangu files
+          if [ -d "donor/product/pangu/system" ]; then
+              mkdir -p donor/system/system
+              cp -rf donor/product/pangu/system/* donor/system/system/
+              rm -rf donor/product/pangu/system
+          fi
+
+          # Locate mi_ext (check donor root or workspace root)
+          MI_EXT_DIR="donor/mi_ext"
+          [ -d "mi_ext" ] && MI_EXT_DIR="mi_ext"
+
+          # Step 7: Merge mi_ext build.prop
+          if [ -f "$MI_EXT_DIR/etc/build.prop" ]; then
+              mkdir -p donor/product/etc
+              cat "$MI_EXT_DIR/etc/build.prop" >> donor/product/etc/build.prop
+          fi
+
+          # Step 8: Merge mi_ext/product
+          if [ -d "$MI_EXT_DIR/product" ]; then
+              mkdir -p donor/product
+              cp -rf "$MI_EXT_DIR/product/"* donor/product/
+              rm -rf "$MI_EXT_DIR/product"
+          fi
+
+      - name: Repack Partitions into EROFS
         run: |
-             ls -lah stock
+          # Pack stock partitions
+          mkfs.erofs -zlz4hc stock/vendor.img stock/vendor/
+          mkfs.erofs -zlz4hc stock/odm.img stock/odm/
+          mkfs.erofs -zlz4hc stock/vendor_dlkm.img stock/vendor_dlkm/
+          mkfs.erofs -zlz4hc stock/odm_dlkm.img stock/odm_dlkm/
+          mkfs.erofs -zlz4hc stock/system_dlkm.img stock/system_dlkm/
 
-             ls -lah stock
-      - name: Porting 
+          # Pack donor partitions
+          mkfs.erofs -zlz4hc donor/system.img donor/system/
+          mkfs.erofs -zlz4hc donor/product.img donor/product/
+          mkfs.erofs -zlz4hc donor/system_ext.img donor/system_ext/
+
+          # Clean up file trees to avoid disk overflow before lpmake
+          rm -rf stock/vendor/ stock/odm/ stock/vendor_dlkm/ stock/odm_dlkm/ stock/system_dlkm/
+          rm -rf donor/system/ donor/product/ donor/system_ext/
+
+      - name: Build super.img
         run: |
-             
+          SYSTEM_SIZE=$(stat -c %s donor/system.img)
+          PRODUCT_SIZE=$(stat -c %s donor/product.img)
+          SYSTEM_EXT_SIZE=$(stat -c %s donor/system_ext.img)
+          VENDOR_SIZE=$(stat -c %s stock/vendor.img)
+          ODM_SIZE=$(stat -c %s stock/odm.img)
+          VENDOR_DLKM_SIZE=$(stat -c %s stock/vendor_dlkm.img)
+          ODM_DLKM_SIZE=$(stat -c %s stock/odm_dlkm.img)
+          SYSTEM_DLKM_SIZE=$(stat -c %s stock/system_dlkm.img)
 
-             
+          lpmake \
+            --metadata-size 65536 \
+            --super-name super \
+            --metadata-slots 3 \
+            --virtual-ab \
+            --device super:9663676416 \
+            --group main_a:9659482112 \
+            --group main_b:0 \
+            --partition system_a:readonly:$SYSTEM_SIZE:main_a \
+            --image system_a=donor/system.img \
+            --partition product_a:readonly:$PRODUCT_SIZE:main_a \
+            --image product_a=donor/product.img \
+            --partition system_ext_a:readonly:$SYSTEM_EXT_SIZE:main_a \
+            --image system_ext_a=donor/system_ext.img \
+            --partition vendor_a:readonly:$VENDOR_SIZE:main_a \
+            --image vendor_a=stock/vendor.img \
+            --partition odm_a:readonly:$ODM_SIZE:main_a \
+            --image odm_a=stock/odm.img \
+            --partition vendor_dlkm_a:readonly:$VENDOR_DLKM_SIZE:main_a \
+            --image vendor_dlkm_a=stock/vendor_dlkm.img \
+            --partition odm_dlkm_a:readonly:$ODM_DLKM_SIZE:main_a \
+            --image odm_dlkm_a=stock/odm_dlkm.img \
+            --partition system_dlkm_a:readonly:$SYSTEM_DLKM_SIZE:main_a \
+            --image system_dlkm_a=stock/system_dlkm.img \
+            --sparse \
+            --output super.img
+
+          ls -lh super.img
+
+      - name: Compress and Upload super.img
+        run: |
+          # 7z with fast compression to stay under upload limits and save space
+          7z a -mx=1 super.7z super.img
+          rm super.img
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: super-image
+          path: super.7z
+          retention-days: 2
