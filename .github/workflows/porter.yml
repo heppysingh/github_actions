@@ -110,6 +110,13 @@ jobs:
               cp -rf "$MI_EXT_DIR/product/"* donor/product/
               rm -rf "$MI_EXT_DIR/product"
           fi
+          # If out/mi_ext_a.img exists from dump, use it; otherwise create a 16KB stub
+          if [ ! -f "stock/mi_ext_a.img" ]; then
+              mkdir -p /tmp/empty_miext
+              mkfs.erofs -zlz4hc stock/mi_ext_a.img /tmp/empty_miext/
+          fi
+          MI_EXT_SIZE=$(stat -c %s stock/mi_ext_a.img)
+
 
       - name: Repack Partitions into EROFS
         run: |
@@ -164,6 +171,8 @@ jobs:
             --image odm_dlkm_a=stock/odm_dlkm.img \
             --partition system_dlkm_a:readonly:$SYSTEM_DLKM_SIZE:main_a \
             --image system_dlkm_a=stock/system_dlkm.img \
+            --partition mi_ext_a:readonly:$MI_EXT_SIZE:main_a \
+            --image mi_ext_a=stock/mi_ext_a.img \
             --sparse \
             --output super.img
 
