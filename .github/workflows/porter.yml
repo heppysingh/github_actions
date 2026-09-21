@@ -110,12 +110,24 @@ jobs:
               cp -rf "$MI_EXT_DIR/product/"* donor/product/
               rm -rf "$MI_EXT_DIR/product"
           fi
-          # If out/mi_ext_a.img exists from dump, use it; otherwise create a 16KB stub
-          if [ ! -f "stock/mi_ext_a.img" ]; then
+         # Locate existing mi_ext or mi_ext_a, otherwise generate stub
+          if [ -f "stock/mi_ext.img" ] && [ -s "stock/mi_ext.img" ]; then
+              cp -f stock/mi_ext.img stock/mi_ext_a.img
+          elif [ -d "stock/mi_ext" ]; then
+              mkfs.erofs -zlz4hc stock/mi_ext_a.img stock/mi_ext/
+          elif [ ! -f "stock/mi_ext_a.img" ] || [ ! -s "stock/mi_ext_a.img" ]; then
               mkdir -p /tmp/empty_miext
+              mkdir -p stock
               mkfs.erofs -zlz4hc stock/mi_ext_a.img /tmp/empty_miext/
+              rm -rf /tmp/empty_miext
           fi
-          MI_EXT_SIZE=$(stat -c %s stock/mi_ext_a.img)
+
+# Measure size with guaranteed fallback
+          MI_EXT_SIZE=$(stat -c %s stock/mi_ext_a.img 2>/dev/null || echo 4096)
+          if [ -z "$MI_EXT_SIZE" ] || [ "$MI_EXT_SIZE" -le 0 ]; then
+              MI_EXT_SIZE=4096
+          fi
+          echo "Calculated MI_EXT_SIZE: $MI_EXT_SIZE"
 
 
       - name: Repack Partitions into EROFS
