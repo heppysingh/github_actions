@@ -110,24 +110,12 @@ jobs:
               cp -rf "$MI_EXT_DIR/product/"* donor/product/
               rm -rf "$MI_EXT_DIR/product"
           fi
-          # Locate existing mi_ext or mi_ext_a, otherwise generate stub
-          if [ -f "stock/mi_ext.img" ] && [ -s "stock/mi_ext.img" ]; then
-              cp -f stock/mi_ext.img stock/mi_ext_a.img
-          elif [ -d "stock/mi_ext" ]; then
-              mkfs.erofs -zlz4hc stock/mi_ext_a.img stock/mi_ext/
-          elif [ ! -f "stock/mi_ext_a.img" ] || [ ! -s "stock/mi_ext_a.img" ]; then
-              mkdir -p /tmp/empty_miext
-              mkdir -p stock
-              mkfs.erofs -zlz4hc stock/mi_ext_a.img /tmp/empty_miext/
-              rm -rf /tmp/empty_miext
-          fi
-
           # Measure size with guaranteed fallback
-          MI_EXT_SIZE=$(stat -c %s stock/mi_ext_a.img 2>/dev/null || echo 4096)
+          MI_EXT_SIZE=$(stat -c %s stock/mi_ext.img 2>/dev/null || echo 4096)
           if [ -z "$MI_EXT_SIZE" ] || [ "$MI_EXT_SIZE" -le 0 ]; then
               MI_EXT_SIZE=4096
           fi
-
+          
 
       - name: Repack Partitions into EROFS
         run: |
@@ -137,6 +125,7 @@ jobs:
           mkfs.erofs -zlz4hc stock/vendor_dlkm.img stock/vendor_dlkm/
           mkfs.erofs -zlz4hc stock/odm_dlkm.img stock/odm_dlkm/
           mkfs.erofs -zlz4hc stock/system_dlkm.img stock/system_dlkm/
+          mkfs.erofs -zlz4hc stock/mi_ext.img stock/mi_ext/
 
           # Pack donor partitions
           mkfs.erofs -zlz4hc donor/system.img donor/system/
@@ -183,7 +172,7 @@ jobs:
             --partition system_dlkm_a:readonly:$SYSTEM_DLKM_SIZE:main_a \
             --image system_dlkm_a=stock/system_dlkm.img \
             --partition mi_ext_a:readonly:$MI_EXT_SIZE:main_a \
-            --image mi_ext_a=stock/mi_ext_a.img \
+            --image mi_ext_a=stock/mi_ext.img \
             --sparse \
             --output super.img
 
