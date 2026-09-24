@@ -45,7 +45,7 @@ jobs:
         run: |
           curl -L --fail --retry 5 --retry-delay 5 -o firmware_stock.tgz "${{ github.event.inputs.firmware_stock_url }}"
           curl -L --fail --retry 5 --retry-delay 5 -o firmware_donor.tgz "${{ github.event.inputs.firmware_donor_url }}"
-          ls -lh *.tgz
+          
 
       - name: Dump stock firmware
         run: |
