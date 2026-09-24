@@ -44,7 +44,7 @@ jobs:
       - name: Download firmware packages
         run: |
           curl -L --fail --retry 5 --retry-delay 5 -o firmware_stock.tgz "${{ github.event.inputs.firmware_stock_url }}"
-          curl -L --fail --retry 5 --retry-delay 5 -o firmware_donor.tgz "${{ github.event.inputs.firmware_donor_url }}"
+          curl -L --fail --retry 5 --retry-delay 5 -o firmware_donor.zip "${{ github.event.inputs.firmware_donor_url }}"
           ls -lh *.tgz
 
       - name: Dump stock firmware
@@ -59,7 +59,7 @@ jobs:
         run: |
           mkdir -p dump_donor
           cd dump_donor
-          python3 -m dumpyara ../firmware_donor.tgz
+          python3 -m dumpyara ../firmware_donor.zip
           cd ..
           rm -f firmware_donor.tgz
 
