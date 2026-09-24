@@ -114,13 +114,6 @@ jobs:
 
       - name: Repack Partitions into EROFS
         run: |
-          # Pack stock partitions
-          mkfs.erofs -zlz4hc stock/vendor.img stock/vendor/
-          mkfs.erofs -zlz4hc stock/odm.img stock/odm/
-          mkfs.erofs -zlz4hc stock/vendor_dlkm.img stock/vendor_dlkm/
-          mkfs.erofs -zlz4hc stock/odm_dlkm.img stock/odm_dlkm/
-          mkfs.erofs -zlz4hc stock/system_dlkm.img stock/system_dlkm/
-          mkfs.erofs -zlz4hc stock/mi_ext.img stock/mi_ext/
 
           # Pack donor partitions
           mkfs.erofs -zlz4hc donor/system.img donor/system/
