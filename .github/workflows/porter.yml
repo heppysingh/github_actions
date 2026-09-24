@@ -53,7 +53,7 @@ jobs:
           cd dump_stock
           python3 -m dumpyara ../firmware_stock.zip
           cd ..
-          rm -f firmware_stock.tgz
+          rm -f firmware_stock.zip
 
       - name: Dump donor firmware
         run: |
