@@ -1,0 +1,43 @@
+name: Extract Stock ROM
+
+on:
+  workflow_dispatch:
+    inputs:
+      rom_url:
+        description: 'URL of the stock ROM zip to download'
+        required: false
+        default: 'https://dfs-serverauto-in.allawnofs.com/dfs/25/06/03/44193d82c89a47ed9ca85cba741818fd.zip'
+
+jobs:
+  extract:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Free up disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc
+          sudo apt-get clean
+          df -h
+
+      - name: Download ROM zip
+        run: |
+          wget -q --show-progress -O rom.zip "${{ github.event.inputs.rom_url }}"
+          ls -lah rom.zip
+
+      - name: Extract ROM zip
+        run: |
+          mkdir -p extracted
+          unzip -q rom.zip -d extracted
+
+      - name: List extracted contents
+        run: |
+          ls -lah extracted
+          echo "---- recursive (2 levels) ----"
+          find extracted -maxdepth 2 -exec ls -ldh {} \;
+
+      - name: Upload extracted contents as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: extracted-rom
+          path: extracted/
+          retention-da
+          ys: 3
