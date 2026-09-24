@@ -6,11 +6,11 @@ on:
       firmware_stock_url:
         description: 'URL of the Stock firmware package (tgz/zip/etc)'
         required: true
-        default: 'https://xm04.space/MyUrLiwlJzsOOD0BMz8GIywRNEEOFTAINBUpIzE/KzUOPDJBGyEELhsQMDUxIS0eGz8dLzE/Hx4OFQRBDjwfDDQ8Kw8bFQQeNBIuAA4KBCYzPC0wMQofHg4KHwwxED0kQh4nLycSIh4nFkIvJxIXPEIJPUADLTUfDj8rDCwKFzUbIT0cMxUXHBsRAAw5CgQmPBEtIzkVNC0sMD0kQh4nLycSIh4nFkIvJxIXPEIJPUADLTUfPB4HQScCOUEfHh0/DgIdQScWHS8nFhocJwM5LycEPQgxLTowGxUyNRsWCT8fHiwwDiArIAsgADonAywiBQMUHgUWBzAfHRMT'
+        default: 'https://cdnorg.d.miui.com/OS2.0.202.0.VPOINXM/tornado_in_global-ota_full-OS2.0.202.0.VPOINXM-user-15.0-955fd223a5.zip'
       firmware_donor_url:
         description: 'URL of the Donor firmware package (tgz/zip/etc)'
         required: true
-        default: 'https://xm04.space/MyUrLiwlJzsOOD0BMz8GIywRNEEOFTAINBUpIzE/KzUOPDJBGyEELhsQMDUxIS0eGz8dLzE/Hx4OFQRBDjwfDDQ8Kw8bFQQeNBIuAA4KBCYzPC0wMQofHg4KHwwxED0kQh4nLycSIh4nFkIvJxIXPEIJPUADLTUfDj8rDCwKFzUbIT0cMxUXHBsRAAw5CgQmPBEtIzkVNC0sMD0kQh4nLycSIh4nFkIvJxIXPEIJPUADLTUfPB4HQScCOUEfHh0/DgIdQScWHS8nFhocJwM5LycEPQgxLTowGxUyNRsWCT8fHiwwDiArIAsgADonAywiBQMUHgUWBzAfHRMT'
+        default: 'https://bkt-sgp-miui-ota-update-alisgp.oss-ap-southeast-1.aliyuncs.com/OS4.0.0.3.XPSCNXM/warhol-ota_full-OS4.0.0.3.XPSCNXM-user-17.0-d7c0b752aa.zip'
 
 permissions:
   contents: write
@@ -43,7 +43,7 @@ jobs:
  
       - name: Download firmware packages
         run: |
-          curl -L --fail --retry 5 --retry-delay 5 -o firmware_stock.tgz "${{ github.event.inputs.firmware_stock_url }}"
+          curl -L --fail --retry 5 --retry-delay 5 -o firmware_stock.zip "${{ github.event.inputs.firmware_stock_url }}"
           curl -L --fail --retry 5 --retry-delay 5 -o firmware_donor.zip "${{ github.event.inputs.firmware_donor_url }}"
           ls -lh *.tgz
 
@@ -51,7 +51,7 @@ jobs:
         run: |
           mkdir -p dump_stock
           cd dump_stock
-          python3 -m dumpyara ../firmware_stock.tgz
+          python3 -m dumpyara ../firmware_stock.zip
           cd ..
           rm -f firmware_stock.tgz
 
