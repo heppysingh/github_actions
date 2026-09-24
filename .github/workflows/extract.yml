@@ -34,10 +34,14 @@ jobs:
           echo "---- recursive (2 levels) ----"
           find extracted -maxdepth 2 -exec ls -ldh {} \;
 
-      - name: Upload extracted contents as artifact
+      - name: Locate vendor_boot.img
+        run: |
+          find extracted -iname 'vendor_boot.img' -exec ls -lah {} \;
+
+      - name: Upload vendor_boot.img as artifact
         uses: actions/upload-artifact@v4
         with:
-          name: extracted-rom
-          path: extracted/
-          retention-da
-          ys: 3
+          name: vendor_boot
+          path: extracted/**/vendor_boot.img
+          retention-days: 3
+          if-no-files-found: error
