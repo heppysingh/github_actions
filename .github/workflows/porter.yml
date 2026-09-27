@@ -111,7 +111,10 @@ jobs:
               rm -rf "$MI_EXT_DIR/product"
           fi
           
-
+          rm -rf stock/mi_ext/product/app/*
+          rm -rf stock/mi_ext/product/data-app/*
+          rm -rf stock/mi_ext/product/priv-app/*
+          
       - name: Repack Partitions into EROFS
         run: |
           # Pack stock partitions
