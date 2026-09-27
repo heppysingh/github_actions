@@ -6,7 +6,7 @@ on:
       firmware_stock_url:
         description: 'URL of the Stock firmware package (tgz/zip/etc)'
         required: true
-        default: 'https://xm01.space/MyUrLiwlJzsOOD0BMz8GIywRNEEOFTAINBUpIzE/KzUOPDJBGyEELhsQMDUxIS0eGz8dLzE/Hx4OFQRBDjwfDDQ8Kw8bFQQeNBIuAA4KBCYzPC0wMQofHg4KHwwxED0kQh4HLycSIjgnFgcvJxIXFUIJPUADLTUfDj8rDCwKFzUbIT0cMxUXHBsRAAw5CgQmDhU9LjkyPQo0FQAmDkI9AycBIkEOAgdBJwEiQQ4tGwYDLi0FFQkuIzQ8Hy0sAS4AHxAiQQ4DKTAfFRspJwIHHjkDQi8LCi1BHCVBAB8eKUEfAywiBQM5QQ=='
+        default: 'https://xm01.space/MyUrLiwlJzsOOD0BMz8GIywRNEEOFTAINBUpIzE/KzUOPDJBGyEELhsQMDUxIS0eGz8dLzE/Hx4OFQRBDjwfDDQ8Kw8bFQQeNBIuAA4KBCYzPC0wMQofHg4KHwwxED0kQh4HLycSIjgnFgcvJxIXFUIJPUADLTUfDj8rDCwKFzUbIT0cMxUXHBsRAAw5CgQmDhU9LjkyPQo0FQAmDkI9AycBIkEOAgdBJwEiQQ4tGwYDLi0FFQkuIzQ8Hy0sAS4AHxAiQQ4DKTAfFRspJwIHHjkDQi8LCi1BHCVBAB8eKUEfAxQeBQMpOA=='
       firmware_donor_url:
         description: 'URL of the Donor firmware package (tgz/zip/etc)'
         required: true
