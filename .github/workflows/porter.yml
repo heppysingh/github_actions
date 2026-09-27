@@ -136,15 +136,24 @@ jobs:
 
       - name: Build super.img
         run: |
-          MI_EXT_SIZE=$(stat -c %s stock/mi_ext.img)
-          SYSTEM_SIZE=$(stat -c %s donor/system.img)
-          PRODUCT_SIZE=$(stat -c %s donor/product.img)
-          SYSTEM_EXT_SIZE=$(stat -c %s donor/system_ext.img)
-          VENDOR_SIZE=$(stat -c %s stock/vendor.img)
-          ODM_SIZE=$(stat -c %s stock/odm.img)
-          VENDOR_DLKM_SIZE=$(stat -c %s stock/vendor_dlkm.img)
-          ODM_DLKM_SIZE=$(stat -c %s stock/odm_dlkm.img)
-          SYSTEM_DLKM_SIZE=$(stat -c %s stock/system_dlkm.img)
+          align_size() {
+            local size=$1
+            echo $(( (size + 4095) / 4096 * 4096 ))
+          }
+
+          SYSTEM_SIZE=$(align_size $(stat -c %s donor/system.img))
+          PRODUCT_SIZE=$(align_size $(stat -c %s donor/product.img))
+          SYSTEM_EXT_SIZE=$(align_size $(stat -c %s donor/system_ext.img))
+          VENDOR_SIZE=$(align_size $(stat -c %s stock/vendor.img))
+          ODM_SIZE=$(align_size $(stat -c %s stock/odm.img))
+          VENDOR_DLKM_SIZE=$(align_size $(stat -c %s stock/vendor_dlkm.img))
+          ODM_DLKM_SIZE=$(align_size $(stat -c %s stock/odm_dlkm.img))
+          SYSTEM_DLKM_SIZE=$(align_size $(stat -c %s stock/system_dlkm.img))
+          MI_EXT_SIZE=$(align_size $(stat -c %s stock/mi_ext.img))
+
+
+
+
 
           lpmake \
             --metadata-size 65536 \
@@ -171,8 +180,7 @@ jobs:
             --partition system_dlkm_a:readonly:$SYSTEM_DLKM_SIZE:main_a \
             --image system_dlkm_a=stock/system_dlkm.img \
             --partition mi_ext_a:readonly:$MI_EXT_SIZE:main_a \
-            --image mi_ext_a=stock/mi_ext.img \
-            --sparse \
+            --image mi_ext_a=stock/mi_ext.img \          
             --output super.img
 
           ls -lh super.img
