@@ -162,7 +162,7 @@ jobs:
             --partition system_a:readonly:$SYSTEM_SIZE:main_a --image system_a=donor/system.img \
             --partition system_b:readonly:0:main_b \
             --partition product_a:readonly:$PRODUCT_SIZE:main_a --image product_a=donor/product.img \
-            --partition system_b:readonly:0:main_b \
+            --partition product_b:readonly:0:main_b \
             --partition system_ext_a:readonly:$SYSTEM_EXT_SIZE:main_a --image system_ext_a=donor/system_ext.img \
             --partition system_ext_b:readonly:0:main_b \
             --partition vendor_a:readonly:$VENDOR_SIZE:main_a --image vendor_a=stock/vendor.img \
@@ -179,7 +179,6 @@ jobs:
             --partition mi_ext_b:readonly:0:main_b \
             --sparse \
             --output super.img
-
 
           ls -lh super.img
 
