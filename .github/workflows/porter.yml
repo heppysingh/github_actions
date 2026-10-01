@@ -68,8 +68,8 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: Settings
+          name: Theme
           if-no-files-found: warn
           path: |
-            donor/system_ext/priv-app/Settings/Settings.apk
+            donor/product/priv-app/MIUIThemeStore/MIUIThemeStore.apk
           
