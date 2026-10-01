@@ -43,17 +43,9 @@ jobs:
  
       - name: Download firmware packages
         run: |
-          curl -L --fail --retry 5 --retry-delay 5 -o firmware_stock.zip "${{ github.event.inputs.firmware_stock_url }}"
+          
           curl -L --fail --retry 5 --retry-delay 5 -o firmware_donor.zip "${{ github.event.inputs.firmware_donor_url }}"
           
-
-      - name: Dump stock firmware
-        run: |
-          mkdir -p dump_stock
-          cd dump_stock
-          python3 -m dumpyara ../firmware_stock.zip
-          cd ..
-          rm -f firmware_stock.zip
 
       - name: Dump donor firmware
         run: |
@@ -65,132 +57,19 @@ jobs:
 
       - name: Setup workspace folders
         run: |
-          mv dump_stock/firmware_stock stock
           mv dump_donor/firmware_donor donor
-          rm -rf dump_stock dump_donor
+          rm -rf dump_donor
 
           # Prune non-dynamic partitions to conserve space
-          rm -rf stock/boot* stock/vendor_boot* stock/init_boot* stock/dtbo* stock/rescue*
           rm -rf donor/boot* donor/vendor_boot* donor/init_boot* donor/dtbo* donor/rescue*
 
-      - name: Apply Porting Steps
-        run: |
-          # Step 3: Device features
-          mkdir -p donor/product/etc/device_features
-          cp -rf stock/product/etc/device_features/* donor/product/etc/device_features/ || true
-
-          # Step 4: Display config
-          mkdir -p donor/product/etc/displayconfig
-          cp -rf stock/product/etc/displayconfig/* donor/product/etc/displayconfig/ || true
-
-          # Step 5: Transfer VNDK APEX
-          mkdir -p donor/system_ext/apex
-          cp -rf stock/system_ext/apex/*vndk* donor/system_ext/apex/ || true
-
-          # Step 6: Move pangu files
-          if [ -d "donor/product/pangu/system" ]; then
-              mkdir -p donor/system/system
-              cp -rf donor/product/pangu/system/* donor/system/system/
-              rm -rf donor/product/pangu/system
-          fi
-
-          # Locate mi_ext (check donor root or workspace root)
-          MI_EXT_DIR="donor/mi_ext"
-          [ -d "mi_ext" ] && MI_EXT_DIR="mi_ext"
-
-          # Step 7: Merge mi_ext build.prop
-          if [ -f "$MI_EXT_DIR/etc/build.prop" ]; then
-              mkdir -p donor/product/etc
-              cat "$MI_EXT_DIR/etc/build.prop" >> donor/product/etc/build.prop
-          fi
-
-          # Step 8: Merge mi_ext/product
-          if [ -d "$MI_EXT_DIR/product" ]; then
-              mkdir -p donor/product
-              cp -rf "$MI_EXT_DIR/product/"* donor/product/
-              rm -rf "$MI_EXT_DIR/product"
-          fi
-          
-          rm -rf stock/mi_ext/product/app/*
-          rm -rf stock/mi_ext/product/data-app/*
-          rm -rf stock/mi_ext/product/priv-app/*
-          
-      - name: Repack Partitions into EROFS
-        run: |
-          # Pack stock partitions
-          mkfs.erofs -zlz4hc stock/vendor.img stock/vendor/
-          mkfs.erofs -zlz4hc stock/odm.img stock/odm/
-          mkfs.erofs -zlz4hc stock/vendor_dlkm.img stock/vendor_dlkm/
-          mkfs.erofs -zlz4hc stock/odm_dlkm.img stock/odm_dlkm/
-          mkfs.erofs -zlz4hc stock/system_dlkm.img stock/system_dlkm/
-          mkfs.erofs -zlz4hc stock/mi_ext.img stock/mi_ext/
-
-          # Pack donor partitions
-          mkfs.erofs -zlz4hc donor/system.img donor/system/
-          mkfs.erofs -zlz4hc donor/product.img donor/product/
-          mkfs.erofs -zlz4hc donor/system_ext.img donor/system_ext/
-
-          # Clean up file trees to avoid disk overflow before lpmake
-          rm -rf stock/vendor/ stock/odm/ stock/vendor_dlkm/ stock/odm_dlkm/ stock/system_dlkm/
-          rm -rf donor/system/ donor/product/ donor/system_ext/
-
-      - name: Build super.img
-        run: |
-          align_size() {
-            local size=$1
-            echo $(( (size + 4095) / 4096 * 4096 ))
-          }
-
-          SYSTEM_SIZE=$(align_size $(stat -c %s donor/system.img))
-          PRODUCT_SIZE=$(align_size $(stat -c %s donor/product.img))
-          SYSTEM_EXT_SIZE=$(align_size $(stat -c %s donor/system_ext.img))
-          VENDOR_SIZE=$(align_size $(stat -c %s stock/vendor.img))
-          ODM_SIZE=$(align_size $(stat -c %s stock/odm.img))
-          VENDOR_DLKM_SIZE=$(align_size $(stat -c %s stock/vendor_dlkm.img))
-          ODM_DLKM_SIZE=$(align_size $(stat -c %s stock/odm_dlkm.img))
-          SYSTEM_DLKM_SIZE=$(align_size $(stat -c %s stock/system_dlkm.img))
-          MI_EXT_SIZE=$(align_size $(stat -c %s stock/mi_ext.img))
-
-          lpmake \
-            --metadata-size 65536 \
-            --super-name super \
-            --metadata-slots 3 \
-            --virtual-ab \
-            --device super:9663676416 \
-            --group main_a:9653190656 \
-            --group main_b:9653190656 \
-            --partition system_a:readonly:$SYSTEM_SIZE:main_a --image system_a=donor/system.img \
-            --partition system_b:readonly:0:main_b \
-            --partition product_a:readonly:$PRODUCT_SIZE:main_a --image product_a=donor/product.img \
-            --partition product_b:readonly:0:main_b \
-            --partition system_ext_a:readonly:$SYSTEM_EXT_SIZE:main_a --image system_ext_a=donor/system_ext.img \
-            --partition system_ext_b:readonly:0:main_b \
-            --partition vendor_a:readonly:$VENDOR_SIZE:main_a --image vendor_a=stock/vendor.img \
-            --partition vendor_b:readonly:0:main_b \
-            --partition odm_a:readonly:$ODM_SIZE:main_a --image odm_a=stock/odm.img \
-            --partition odm_b:readonly:0:main_b \
-            --partition vendor_dlkm_a:readonly:$VENDOR_DLKM_SIZE:main_a --image vendor_dlkm_a=stock/vendor_dlkm.img \
-            --partition vendor_dlkm_b:readonly:0:main_b \
-            --partition odm_dlkm_a:readonly:$ODM_DLKM_SIZE:main_a --image odm_dlkm_a=stock/odm_dlkm.img \
-            --partition odm_dlkm_b:readonly:0:main_b \
-            --partition system_dlkm_a:readonly:$SYSTEM_DLKM_SIZE:main_a --image system_dlkm_a=stock/system_dlkm.img \
-            --partition system_dlkm_b:readonly:0:main_b \
-            --partition mi_ext_a:readonly:$MI_EXT_SIZE:main_a --image mi_ext_a=stock/mi_ext.img \
-            --partition mi_ext_b:readonly:0:main_b \
-            --sparse \
-            --output super.img
-
-          ls -lh super.img
-
-      - name: Compress and Upload super.img
-        run: |
-          # 7z with fast compression to stay under upload limits and save space
-          7z a -mx=1 super.7z super.img
-          rm super.img
-
-      - name: Upload Artifact
+      
+      - name: Upload Artifacts
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: super-image
-          path: super.7z
-          retention-days: 2
+          name: Settings
+          if-no-files-found: warn
+          path: |
+            donor/system_ext/priv-app/Settings/Settings.apk
+          
