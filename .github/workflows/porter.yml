@@ -71,5 +71,5 @@ jobs:
           name: Theme
           if-no-files-found: warn
           path: |
-            donor/product/priv-app/MIUIThemeStore/MIUIThemeStore.apk
+            donor/product/priv-app/
           
